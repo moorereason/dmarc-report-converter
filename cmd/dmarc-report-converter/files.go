@@ -49,6 +49,8 @@ func (c *filesConverter) ConvertWrite() error {
 
 	if c.cfg.Input.Delete {
 		c.delete()
+	} else if c.cfg.Input.ArchiveDir != "" {
+		c.archive()
 	}
 
 	return nil
@@ -74,12 +76,22 @@ func (c *filesConverter) find() error {
 				continue
 			}
 
-			if isSuccess && c.cfg.Input.Delete {
-				log.Printf("[DEBUG] files: delete %v", eml)
-				err := os.Remove(eml)
-				if err != nil {
-					log.Printf("[ERROR] files: %v", err)
-					continue
+			if isSuccess {
+				if c.cfg.Input.Delete {
+					log.Printf("[DEBUG] files: delete %v", eml)
+					err := os.Remove(eml)
+					if err != nil {
+						log.Printf("[ERROR] files: %v", err)
+						continue
+					}
+				} else if c.cfg.Input.ArchiveDir != "" {
+					log.Printf("[DEBUG] files: archive %v", eml)
+					newpath := filepath.Join(c.cfg.Input.ArchiveDir, filepath.Base(eml))
+					err := os.Rename(eml, newpath)
+					if err != nil {
+						log.Printf("[ERROR] files: %v", err)
+						continue
+					}
 				}
 			}
 			br.Close()
@@ -148,6 +160,18 @@ func (c *filesConverter) merge() error {
 
 	c.reports = reports
 	return nil
+}
+
+func (c *filesConverter) archive() {
+	for _, f := range c.filesSuccess {
+		log.Printf("[INFO] files: archive %v", f)
+		newpath := filepath.Join(c.cfg.Input.ArchiveDir, filepath.Base(f))
+		err := os.Rename(f, newpath)
+		if err != nil {
+			log.Printf("[ERROR] files: %v, skip", err)
+			continue
+		}
+	}
 }
 
 func (c *filesConverter) delete() {

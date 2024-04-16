@@ -1,9 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
+	"io/fs"
+	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -22,9 +26,10 @@ type config struct {
 
 // Input is the input section of config
 type Input struct {
-	Dir    string `yaml:"dir"`
-	IMAP   IMAP   `yaml:"imap"`
-	Delete bool   `yaml:"delete"`
+	Dir        string `yaml:"dir"`
+	IMAP       IMAP   `yaml:"imap"`
+	Delete     bool   `yaml:"delete"`
+	ArchiveDir string `yaml:"archive_dir"`
 }
 
 // IMAP is the input.imap section of config
@@ -84,6 +89,18 @@ func loadConfig(path string) (*config, error) {
 		return nil, fmt.Errorf("input.dir is not configured")
 	}
 
+	if c.Input.Delete && c.Input.ArchiveDir != "" {
+		return nil, fmt.Errorf("input.delete and input.archive_dir are mutually exclusive")
+	}
+
+	c.Input.Dir = filepath.Clean(c.Input.Dir)
+	c.Input.ArchiveDir = filepath.Clean(c.Input.ArchiveDir)
+	c.Output.ExternalTemplate = filepath.Clean(c.Output.ExternalTemplate)
+
+	if c.Input.Dir == c.Input.ArchiveDir {
+		return nil, fmt.Errorf("input.dir and input.archive_dir are the same location")
+	}
+
 	if c.Input.IMAP.Security == "" {
 		c.Input.IMAP.Security = "tls"
 	}
@@ -132,6 +149,11 @@ func loadConfig(path string) (*config, error) {
 	}
 
 	c.Output.mergeKeyTemplate = template.Must(template.New("merge_key").Funcs(tmplFuncs).Parse(c.MergeKey))
+
+	err = os.MkdirAll(c.Input.ArchiveDir, 0700)
+	if err != nil && !errors.Is(err, fs.ErrExist) {
+		log.Fatalf("[ERROR] error created archive path: %s", err)
+	}
 
 	return &c, nil
 }

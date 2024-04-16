@@ -1,6 +1,7 @@
 input:
   delete: no
   dir: "/tmp/dmarc_files/"
+  archive_dir: "/tmp/dmarc_files/archive/"
   #imap:
   #  server: ""
   #  username: ""

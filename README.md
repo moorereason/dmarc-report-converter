@@ -112,6 +112,8 @@ Copy config/config.dist.yaml to config.yaml and change parameters:
 
 * **dir** (str): directory with input files
 
+* **archive_dir** (str): directory to which processed input files will be archived
+
 * **delete** (bool): delete source files after conversion?
 
 * **imap** *(optional section)*: dmarc-report-converter can fetch reports from IMAP server and save
